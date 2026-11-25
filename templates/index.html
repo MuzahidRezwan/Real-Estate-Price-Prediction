@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <title>Real Estate Price Prediction System | DIU SE331 Capstone</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">৳</div>
+        <div>
+          <span class="brand-kicker">DIU SE331 Capstone Project</span>
+          <h1 class="brand-title">Real Estate Price Prediction System</h1>
+        </div>
+      </div>
+      <nav class="nav-links" aria-label="Primary Navigation">
+        <a href="#predictor">Valuation Tool</a>
+        <a href="#insights">Model Insights</a>
+        <a href="#eda-gallery">EDA Charts</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container main-content">
+    <!-- Hero Summary Strip -->
+    <section class="hero-strip" aria-label="System Overview">
+      <div class="hero-copy">
+        <span class="pill-badge">Bangladesh Property Valuation Engine</span>
+        <h2>Data-Driven Apartment Price Estimation in Seconds</h2>
+        <p>
+          Powered by an anonymized, outlier-filtered PBazaar dataset and benchmarked across
+          four scikit-learn regression pipelines. Enter structural specs and neighborhood below for
+          an instant BDT valuation.
+        </p>
+      </div>
+      <div class="kpi-grid" id="hero-kpis">
+        <div class="kpi-card">
+          <span class="kpi-label">Active Model</span>
+          <strong class="kpi-value" id="kpi-best-model">{{ metadata.best_model_name }}</strong>
+          <span class="kpi-sub">Selected by test R²</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Test R² Score</span>
+          <strong class="kpi-value" id="kpi-r2">{{ "%.4f"|format(metadata.best_model_metrics.r2) }}</strong>
+          <span class="kpi-sub">80/20 holdout evaluation</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Cleaned Listings</span>
+          <strong class="kpi-value" id="kpi-rows">{{ "{:,}".format(metadata.dataset_stats.total_clean_rows) }}</strong>
+          <span class="kpi-sub">From {{ "{:,}".format(metadata.dataset_stats.raw_rows) }} raw records</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Location Tiers</span>
+          <strong class="kpi-value" id="kpi-locs">{{ metadata.locations|length }}</strong>
+          <span class="kpi-sub">Sparse areas (&lt;10) in Other</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Predictor Workspace -->
+    <section id="predictor" class="predictor-grid">
+      <div class="card form-card">
+        <div class="card-header">
+          <h3>Property Specifications</h3>
+          <p>Select a neighborhood and enter apartment dimensions to compute an estimated market value.</p>
+        </div>
+
+        <form id="prediction-form" novalidate>
+          <!-- Searchable Location Dropdown (FR-2) -->
+          <div class="form-group">
+            <label for="location-search">
+              Neighborhood / Location <span class="required">*</span>
+            </label>
+            <div class="combobox-wrap" id="location-combobox">
+              <input
+                type="text"
+                id="location-search"
+                name="location"
+                placeholder="Search location (e.g., Dhanmondi, Mirpur, Gulshan 2)..."
+                autocomplete="off"
+                role="combobox"
+                aria-expanded="false"
+                aria-controls="location-listbox"
+                aria-autocomplete="list"
+                required
+              />
+              <button
+                type="button"
+                class="combobox-toggle"
+                id="location-toggle-btn"
+                aria-label="Toggle location options"
+              >
+                ▾
+              </button>
+              <ul
+                id="location-listbox"
+                class="combobox-list hidden"
+                role="listbox"
+                aria-label="Available Locations"
+              ></ul>
+            </div>
+            <small class="field-hint" id="location-hint">
+              Loading {{ metadata.locations|length }} dynamic location categories...
+            </small>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="city-select">City / Division <span class="required">*</span></label>
+              <select id="city-select" name="city" required></select>
+              <small class="field-hint">Auto-matched to location; override if needed.</small>
+            </div>
+
+            <div class="form-group">
+              <label for="floor-area">Floor Area (sq. ft.) <span class="required">*</span></label>
+              <input
+                type="number"
+                id="floor-area"
+                name="floor_area_sft"
+                min="1"
+                step="10"
+                value="1350"
+                placeholder="e.g., 1350"
+                required
+              />
+              <div class="preset-chips" aria-label="Common floor area presets">
+                <button type="button" class="chip-btn" data-area="1000">1,000 sft</button>
+                <button type="button" class="chip-btn" data-area="1350">1,350 sft</button>
+                <button type="button" class="chip-btn" data-area="1750">1,750 sft</button>
+                <button type="button" class="chip-btn" data-area="2400">2,400 sft</button>
+              </div>
+              <small class="field-hint" id="area-bounds-hint">Training range: 450 – 3,748 sqft</small>
+            </div>
+          </div>
+
+          <div class="form-row three-col">
+            <div class="form-group">
+              <label for="bedrooms">Bedrooms <span class="required">*</span></label>
+              <input
+                type="number"
+                id="bedrooms"
+                name="bedrooms"
+                min="1"
+                step="1"
+                value="3"
+                required
+              />
+              <small class="field-hint" id="bed-bounds-hint">Typical: 1 – 6</small>
+            </div>
+
+            <div class="form-group">
+              <label for="bathrooms">Bathrooms <span class="required">*</span></label>
+              <input
+                type="number"
+                id="bathrooms"
+                name="bathrooms"
+                min="1"
+                step="1"
+                value="3"
+                required
+              />
+              <small class="field-hint" id="bath-bounds-hint">Typical: 1 – 6</small>
+            </div>
+
+            <div class="form-group">
+              <label for="parking">Parking Spaces</label>
+              <input
+                type="number"
+                id="parking"
+                name="parking_count"
+                min="0"
+                step="1"
+                value="1"
+                required
+              />
+              <small class="field-hint" id="parking-bounds-hint">Typical: 0 – 4</small>
+            </div>
+          </div>
+
+          <div id="form-error-banner" class="alert alert-error hidden" role="alert"></div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-primary" id="predict-btn">
+              <span class="btn-label">Estimate Property Price</span>
+              <span class="btn-spinner hidden" aria-hidden="true"></span>
+            </button>
+            <button type="button" class="btn-secondary" id="reset-btn">Reset</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Result Output Card (FR-4 & FR-5) -->
+      <div class="card result-card" aria-live="polite">
+        <div class="card-header">
+          <h3>Estimated Valuation Output</h3>
+          <span class="latency-pill" id="latency-pill">Ready</span>
+        </div>
+
+        <div id="result-placeholder" class="result-placeholder">
+          <div class="placeholder-icon" aria-hidden="true">🏢</div>
+          <p>
+            Select your neighborhood and apartment details on the left, then click
+            <strong>Estimate Property Price</strong> to inspect your valuation in BDT.
+          </p>
+        </div>
+
+        <div id="result-content" class="result-content hidden">
+          <div class="price-hero">
+            <span class="price-caption">Predicted Market Estimate</span>
+            <div class="price-main" id="res-bdt">৳ —</div>
+            <div class="price-sub" id="res-lakh-crore">—</div>
+          </div>
+
+          <div id="warning-banner" class="alert alert-warning hidden" role="status">
+            <strong>Extrapolation / Boundary Notice (FR-5)</strong>
+            <ul id="warning-list"></ul>
+          </div>
+
+          <div class="metric-mini-grid">
+            <div class="mini-stat">
+              <span class="mini-label">Implied Rate</span>
+              <strong id="res-pps">—</strong>
+            </div>
+            <div class="mini-stat">
+              <span class="mini-label">Model Engine</span>
+              <strong id="res-model">—</strong>
+            </div>
+            <div class="mini-stat">
+              <span class="mini-label">Inference Time</span>
+              <strong id="res-latency">—</strong>
+            </div>
+            <div class="mini-stat">
+              <span class="mini-label">Neighborhood Median</span>
+              <strong id="res-loc-median">—</strong>
+            </div>
+          </div>
+
+          <div class="input-echo" id="res-echo"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Model Insights & Dataset Pipeline Section -->
+    <section id="insights" class="section-block">
+      <div class="section-head">
+        <div>
+          <span class="pill-badge">ML Evaluation & Preprocessing</span>
+          <h2>Model Insights &amp; Data Pipeline</h2>
+        </div>
+        <p class="section-sub">
+          Zero-leakage feature matrix trained on 80% split and evaluated on 20% unseen holdout data
+          (<code>random_state=42</code>).
+        </p>
+      </div>
+
+      <div class="pipeline-stats-grid" id="cleaning-cards">
+        <div class="stat-tile">
+          <span class="stat-label">Raw Scraped Rows</span>
+          <strong>{{ "{:,}".format(metadata.dataset_stats.raw_rows) }}</strong>
+        </div>
+        <div class="stat-tile">
+          <span class="stat-label">Negotiable / Unpriced Removed</span>
+          <strong>-{{ "{:,}".format(metadata.dataset_stats.negotiable_or_missing_price_rows) }}</strong>
+        </div>
+        <div class="stat-tile">
+          <span class="stat-label">Duplicate Listings Removed</span>
+          <strong>-{{ "{:,}".format(metadata.dataset_stats.duplicates_removed) }}</strong>
+        </div>
+        <div class="stat-tile">
+          <span class="stat-label">Clean Dataset Size</span>
+          <strong>{{ "{:,}".format(metadata.dataset_stats.total_clean_rows) }}</strong>
+        </div>
+        <div class="stat-tile">
+          <span class="stat-label">Mean Property Price</span>
+          <strong>{{ "%.2f"|format(metadata.dataset_stats.mean_price_bdt / 1e7) }} Cr</strong>
+        </div>
+      </div>
+
+      <div class="card table-card">
+        <div class="table-header-row">
+          <h3>4-Regressor Benchmark Comparison</h3>
+          <span class="badge-note">Anti-leakage enforced: price/sft, Title, ID, and URL excluded from X</span>
+        </div>
+        <div class="table-scroll">
+          <table class="metrics-table" id="metrics-table">
+            <thead>
+              <tr>
+                <th>Model Architecture</th>
+                <th>Test R²</th>
+                <th>5-Fold CV R²</th>
+                <th>MAE (BDT)</th>
+                <th>MAE (% of Mean)</th>
+                <th>RMSE (BDT)</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="metrics-tbody"></tbody>
+          </table>
+        </div>
+        <p class="methodology-note">
+          <strong>Methodological Transparency:</strong> Public listing attributes omit unrecorded micro-factors
+          such as sub-block/road width, building age, floor height, and interior finish quality, which creates
+          natural market dispersion within major Dhaka zones (e.g., Dhanmondi, Baridhara).
+        </p>
+      </div>
+    </section>
+
+    <!-- EDA Charts Section -->
+    <section id="eda-gallery" class="section-block">
+      <div class="section-head">
+        <div>
+          <span class="pill-badge">Exploratory Data Analysis</span>
+          <h2>Visual Market Patterns</h2>
+        </div>
+        <p class="section-sub">Click any visualization to inspect full resolution.</p>
+      </div>
+
+      <div class="charts-grid">
+        <figure class="card chart-card" data-chart-title="Distribution of Property Prices">
+          <img src="/static/charts/price_distribution.png" alt="Distribution of Property Prices Histogram and KDE" loading="lazy" />
+          <figcaption>
+            <strong>Price Distribution</strong>
+            <span>Right-skewed apartment valuation distribution after domain + IQR (k=1.5) cleaning.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="card chart-card" data-chart-title="Property Price vs. Floor Area">
+          <img src="/static/charts/price_vs_area.png" alt="Scatter Plot of Property Price vs Floor Area" loading="lazy" />
+          <figcaption>
+            <strong>Price vs. Floor Area</strong>
+            <span>Strong positive scaling across floor area with neighborhood tier separation.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="card chart-card" data-chart-title="Top 15 Locations by Average Price">
+          <img src="/static/charts/top_locations_avg_price.png" alt="Top 15 Locations Average Property Price Bar Chart" loading="lazy" />
+          <figcaption>
+            <strong>Top 15 Locations by Average Price</strong>
+            <span>Gulshan 2, Gulshan 1, DOHS Mohakhali, and Baridhara lead average apartment values.</span>
+          </figcaption>
+        </figure>
+
+        <figure class="card chart-card" data-chart-title="Correlation Heatmap">
+          <img src="/static/charts/correlation_heatmap.png" alt="Correlation Heatmap of Numeric Features and Total Price" loading="lazy" />
+          <figcaption>
+            <strong>Structural Feature Correlations</strong>
+            <span>Floor area correlates most strongly (r = 0.80) with total BDT property price.</span>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+  </main>
+
+  <!-- Image Lightbox Modal -->
+  <div id="chart-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-backdrop" id="modal-backdrop"></div>
+    <div class="modal-body">
+      <div class="modal-header">
+        <h4 id="modal-title">Chart Preview</h4>
+        <button type="button" class="modal-close" id="modal-close" aria-label="Close chart preview">✕</button>
+      </div>
+      <img id="modal-img" src="" alt="Expanded EDA Chart" />
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="disclaimer-box">
+        <strong>Statistical &amp; Legal Disclaimer (Proposal Section 5.2):</strong>
+        Predicted prices produced by this system are statistical machine learning estimates derived from
+        anonymized historical residential listings and are intended strictly for informational and academic
+        decision-support purposes. Outputs do <strong>not</strong> constitute a certified legal appraisal,
+        licensed surveyor valuation, bank mortgage assessment, or binding financial advice.
+      </div>
+      <div class="footer-meta">
+        <span>Real Estate Price Prediction System — DIU SE331 Software Engineering Design Capstone</span>
+        <span>FastAPI · scikit-learn · Anonymized Historical Market Data</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/js/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+# Security & Secrets (Mandatory)
+.env
+.env.*
+*.env*
+*.pem
+*.key
+*.cert
+secrets/
+node_modules/
+.vercel/
+
+# Python cache & environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+venv/
+.venv/
+env/
+
+# Logs & OS artifacts
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

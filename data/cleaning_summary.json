@@ -1,0 +1,68 @@
+{
+  "raw_rows": 2393,
+  "raw_columns": [
+    "Property_ID",
+    "Title",
+    "Location",
+    "City",
+    "Floor_area_sft",
+    "Bedrooms",
+    "Bathrooms",
+    "Parking",
+    "Raw_Sale_Price",
+    "Price_Per_Sft_Taka",
+    "Estimated_Total_Price_Taka",
+    "Source_URL"
+  ],
+  "raw_null_counts": {
+    "Property_ID": 0,
+    "Title": 9,
+    "Location": 30,
+    "City": 24,
+    "Floor_area_sft": 0,
+    "Bedrooms": 2,
+    "Bathrooms": 2,
+    "Parking": 2,
+    "Raw_Sale_Price": 0,
+    "Price_Per_Sft_Taka": 202,
+    "Estimated_Total_Price_Taka": 202,
+    "Source_URL": 0
+  },
+  "negotiable_or_missing_price_rows": 202,
+  "missing_location_rows": 30,
+  "after_dropna_rows": 2171,
+  "after_dedup_rows": 2107,
+  "duplicates_removed": 64,
+  "after_domain_bounds_rows": 2030,
+  "after_iqr_outlier_removal_rows": 1843,
+  "iqr_k": 1.5,
+  "min_location_count": 10,
+  "imputed_missing_counts": {
+    "Bedrooms": 2,
+    "Bathrooms": 1,
+    "Parking_Count": 1
+  },
+  "cleaned_rows": 1843,
+  "cleaned_columns": [
+    "Location",
+    "City",
+    "Floor_area_sft",
+    "Bedrooms",
+    "Bathrooms",
+    "Parking_Count",
+    "Estimated_Total_Price_Taka"
+  ],
+  "cleaned_null_counts": {
+    "Location": 0,
+    "City": 0,
+    "Floor_area_sft": 0,
+    "Bedrooms": 0,
+    "Bathrooms": 0,
+    "Parking_Count": 0,
+    "Estimated_Total_Price_Taka": 0
+  },
+  "raw_unique_locations": 94,
+  "cleaned_unique_locations": 35,
+  "other_grouped_listings": 177,
+  "cleaned_unique_cities": 20
+}
